@@ -1,0 +1,181 @@
+﻿<Window x:Class="ExpensesTracker.MainPage"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Expenses Tracker" Height="800" Width="1200" 
+        Background="#F6F8FB"
+        WindowStartupLocation="CenterScreen">
+
+    <!-- Consolidated Window.Resources -->
+    <Window.Resources>
+        <!-- Style for Sidebar Buttons -->
+        <Style x:Key="SidebarButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="#E8EEF4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Regular"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Height" Value="45"/>
+            <Setter Property="Margin" Value="12,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                CornerRadius="8" Padding="16,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Icon placeholder -->
+                                <TextBlock x:Name="icon" Grid.Column="0" 
+                                         Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                         VerticalAlignment="Center"/>
+                                <ContentPresenter Grid.Column="1" Margin="12,0,0,0" 
+                                                VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#4A90E2"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3576C4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style for Header Profile Button -->
+        <Style x:Key="ProfileButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#F0F4F8"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                CornerRadius="20">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#E2E8F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Drop Shadow Effects -->
+        <DropShadowEffect x:Key="DropShadowEffect" 
+                          ShadowDepth="0" 
+                          BlurRadius="10" 
+                          Opacity="0.2"/>
+        <DropShadowEffect x:Key="MaterialDropShadowEffect"
+                          Direction="270"
+                          ShadowDepth="2"
+                          BlurRadius="5"
+                          Opacity="0.2"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar with Blur Effect -->
+        <Border Grid.Column="0" Effect="{StaticResource DropShadowEffect}">
+            <Grid>
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <!-- Modify colors to match the provided blue tone -->
+                        <GradientStop Color="#1E3A8A" Offset="0"/>
+                        <!-- Darker blue -->
+                        <GradientStop Color="#3B82F6" Offset="0.5"/>
+                        <!-- Middle blue tone -->
+                        <GradientStop Color="#60A5FA" Offset="1"/>
+                        <!-- Lighter blue -->
+                    </LinearGradientBrush>
+                </Grid.Background>
+
+                <StackPanel>
+                    <!-- Logo and App Name -->
+                    <StackPanel Margin="20,32,20,40">
+                        <Image Source="pack://application:,,,/ExpensesTracker;component/Images/logo.png" 
+                               Height="40" Width="140" HorizontalAlignment="Left"/>
+                        <TextBlock Text="Expenses Tracker" Foreground="White" 
+                                 FontSize="20" FontWeight="SemiBold" Margin="0,12,0,0"/>
+                    </StackPanel>
+
+                    <!-- Navigation Menu -->
+                    <Button x:Name="ExpensesButton" Style="{StaticResource SidebarButtonStyle}" 
+                            Click="NavigateToExpenses" Tag="💰">
+                        <TextBlock Text="Input Expenses"/>
+                    </Button>
+
+                    <Button x:Name="AnalysisButton" Style="{StaticResource SidebarButtonStyle}" 
+                            Click="NavigateToAnalysis" Tag="📊">
+                        <TextBlock Text="View Expenses"/>
+                    </Button>
+
+                    <Button x:Name="SavingTipsButton" Style="{StaticResource SidebarButtonStyle}" 
+                            Click="NavigateToSavingTips" Tag="💡">
+                        <TextBlock Text="AI Saving Tips"/>
+                    </Button>
+
+                    <Button x:Name="SetAchievementsButton" Style="{StaticResource SidebarButtonStyle}" 
+                            Click="NavigateToSetAchievements" Tag="🎯">
+                        <TextBlock Text="Set Goals"/>
+                    </Button>
+
+                    <Button x:Name="ViewAchievementsButton" Style="{StaticResource SidebarButtonStyle}" 
+                            Click="NavigateToViewAchievements" Tag="🏆">
+                        <TextBlock Text="Achievements"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="80"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="White" Effect="{StaticResource MaterialDropShadowEffect}">
+                <Grid Margin="32,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Page Title -->
+                    <TextBlock Grid.Column="0" Text="Welcome Back!" 
+                             FontSize="24" FontWeight="SemiBold" 
+                             Foreground="#2C3E50" VerticalAlignment="Center"/>
+
+                    <!-- Profile Button -->
+                    <Button Grid.Column="1" Style="{StaticResource ProfileButtonStyle}"
+                            Click="ProfileButton_Click">
+                        <TextBlock Text="👤" FontSize="20"/>
+                    </Button>
+                </Grid> 
+            </Border>
+
+            <!-- Main Content Frame -->
+            <Frame x:Name="MainContentFrame" Grid.Row="1" 
+                   Background="Transparent" NavigationUIVisibility="Hidden" 
+                   Margin="20"/>
+        </Grid>
+    </Grid>
+</Window>

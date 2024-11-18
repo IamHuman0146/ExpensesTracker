@@ -1,0 +1,39 @@
+﻿<Page x:Class="ExpensesTracker.SetFinancialAchievementsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Set Financial Achievements">
+
+    <Grid Background="#F5F5F5" Margin="40">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="Set Your Financial Goal" FontSize="28" FontWeight="Bold" Foreground="#4F46E5" TextAlignment="Center"/>
+            <TextBlock Text="Enter your goal name, amount, and deadline below:" FontSize="16" Foreground="#6B7280" TextAlignment="Center" Margin="0,10,0,30"/>
+
+            <!-- Goal Name Input -->
+            <StackPanel Width="300" Margin="0,10,0,0">
+                <TextBlock Text="Goal Name:" FontWeight="Bold"/>
+                <TextBox x:Name="GoalNameTextBox" Width="300" Height="40" Padding="10,5" BorderBrush="#D1D5DB" BorderThickness="1"/>
+            </StackPanel>
+
+            <!-- Target Amount Input -->
+            <StackPanel Width="300" Margin="0,10,0,0">
+                <TextBlock Text="Target Amount:" FontWeight="Bold"/>
+                <Grid>
+                    <TextBlock x:Name="CurrencySymbolTextBlock" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBox x:Name="GoalAmountTextBox" Width="250" Height="40" Padding="10,5" BorderBrush="#D1D5DB" 
+                             BorderThickness="1" HorizontalAlignment="Right" TextChanged="GoalAmountTextBox_TextChanged"/>
+                </Grid>
+                <TextBlock x:Name="PlaceholderTextBlock" Text="Enter goal amount..." Foreground="#9CA3AF" Margin="5,0,0,0" />
+            </StackPanel>
+
+            <!-- Deadline Input -->
+            <StackPanel Width="300" Margin="0,10,0,0">
+                <TextBlock Text="Deadline:" FontWeight="Bold"/>
+                <DatePicker x:Name="GoalDeadlinePicker" Width="300" Height="40" Padding="10,5"/>
+            </StackPanel>
+
+            <!-- Set Goal Button -->
+            <Button Content="Set Goal" Width="150" Height="40" Margin="0,20,0,0" Background="#4F46E5" Foreground="White" 
+                    BorderThickness="0" Click="SetGoalButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Page>
