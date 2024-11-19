@@ -1,104 +1,160 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Data.SQLite;
 
 namespace ExpensesTracker
 {
     public static class ExpenseDataStore
     {
         public static ObservableCollection<Expense> Expenses { get; } = new ObservableCollection<Expense>();
+
+        // User-specific data
         public static decimal Income { get; set; } = 0;
-        public static string CurrencySymbol { get; set; } = "$"; // Default to Dollar
-        public static int UserID { get; set; } // To track logged-in user
+        public static int UserID { get; set; }
         public static string UserEmail { get; set; }
         public static int UserAge { get; set; }
         public static string UserGender { get; set; }
-        public static string LastGeneratedTips { get; set; } = "";
-        public static int ApiCallCount { get; set; }
-        public static int ApiLimit { get; set; } = 100;
+        public static string CurrencySymbol { get; set; } = "$";
 
+        // Other features
+        public static string LastGeneratedTips { get; set; } = string.Empty;
         public static string GoalName { get; set; } = string.Empty;
         public static DateTime GoalDeadline { get; set; } = DateTime.MinValue;
         public static decimal FinancialGoal { get; set; } = 0m;
+        public static int ApiLimit { get; set; } = 100;
+        public static int ApiCallCount { get; set; } = 0;
 
-        public static decimal RemainingIncome
-        {
-            get
-            {
-                decimal totalExpenses = Expenses.Sum(expense => expense.AmountSpent);
-                return Income - totalExpenses;
-            }
-        }
+        // Calculate remaining income
+        public static decimal RemainingIncome => Income - Expenses.Sum(e => e.AmountSpent);
 
+        /// <summary>
+        /// Load expenses from the database for the logged-in user.
+        /// </summary>
         public static void LoadExpenses()
         {
-            Expenses.Clear(); // Clear existing data
-            var expensesFromDb = DatabaseHelper.GetExpenses(UserID); // Fetch expenses for the logged-in user
+            Expenses.Clear();
+            var expensesFromDb = DatabaseHelper.GetExpenses(UserID); // Ensure UserID is passed here
+
             foreach (var expense in expensesFromDb)
             {
                 Expenses.Add(expense);
             }
+            Console.WriteLine($"Loaded {Expenses.Count} expenses for UserID: {UserID}");
         }
 
+
+
+        /// <summary>
+        /// Add a new expense and save it to the database.
+        /// </summary>
         public static void AddExpense(string itemName, string itemType, decimal amountSpent, string currency, string date)
         {
+            // Convert currency if it differs from user's income currency
+            if (currency != CurrencySymbol)
+            {
+                amountSpent = ConvertCurrency(amountSpent, currency, CurrencySymbol);
+                currency = CurrencySymbol;
+            }
+
             bool success = DatabaseHelper.AddExpense(UserID, itemName, itemType, amountSpent, currency, date);
+
             if (success)
             {
                 Expenses.Add(new Expense
                 {
+                    ExpenseID = Expenses.Any() ? Expenses.Max(e => e.ExpenseID) + 1 : 1,
                     UserID = UserID,
                     ItemName = itemName,
                     ItemType = itemType,
                     AmountSpent = amountSpent,
                     Currency = currency,
-                    Date = date
+                    Date = date,
+                    AmountSpentDisplay = $"{CurrencySymbol}{amountSpent:N0}"
                 });
+
+                Console.WriteLine("Expense added successfully.");
             }
         }
 
+        /// <summary>
+        /// Update an existing expense in the database.
+        /// </summary>
         public static void UpdateExpense(int expenseId, string itemName, string itemType, decimal amountSpent, string currency, string date)
         {
-            try
+            // Convert currency if it differs from user's income currency
+            if (currency != CurrencySymbol)
             {
-                using (var connection = new SQLiteConnection(DatabaseHelper.GetConnectionString())) // Use the public method
-                {
-                    connection.Open();
-                    var command = new SQLiteCommand(@"
-                        UPDATE Expenses
-                        SET ItemName = @ItemName, ItemType = @ItemType, AmountSpent = @AmountSpent, Currency = @Currency, Date = @Date
-                        WHERE ExpenseID = @ExpenseID", connection);
-
-                    // Add parameters to the SQL query
-                    command.Parameters.AddWithValue("@ExpenseID", expenseId);
-                    command.Parameters.AddWithValue("@ItemName", itemName);
-                    command.Parameters.AddWithValue("@ItemType", itemType);
-                    command.Parameters.AddWithValue("@AmountSpent", amountSpent);
-                    command.Parameters.AddWithValue("@Currency", currency);
-                    command.Parameters.AddWithValue("@Date", date);
-
-                    // Execute the command
-                    command.ExecuteNonQuery();
-                }
+                amountSpent = ConvertCurrency(amountSpent, currency, CurrencySymbol);
+                currency = CurrencySymbol;
             }
-            catch (SQLiteException ex)
+
+            DatabaseHelper.UpdateExpense(expenseId, itemName, itemType, amountSpent, currency, date);
+
+            var expenseToUpdate = Expenses.FirstOrDefault(e => e.ExpenseID == expenseId);
+            if (expenseToUpdate != null)
             {
-                Console.WriteLine($"Error updating expense: {ex.Message}");
+                expenseToUpdate.ItemName = itemName;
+                expenseToUpdate.ItemType = itemType;
+                expenseToUpdate.AmountSpent = amountSpent;
+                expenseToUpdate.Currency = currency;
+                expenseToUpdate.Date = date;
+                expenseToUpdate.AmountSpentDisplay = $"{CurrencySymbol}{amountSpent:N0}";
+
+                Console.WriteLine($"Expense with ID {expenseId} updated successfully.");
             }
         }
 
+        /// <summary>
+        /// Delete an expense from the database.
+        /// </summary>
         public static void DeleteExpense(int expenseId)
         {
-            bool success = DatabaseHelper.DeleteExpense(expenseId, UserID);
-            if (success)
+            DatabaseHelper.DeleteExpense(expenseId);
+
+            var expenseToRemove = Expenses.FirstOrDefault(e => e.ExpenseID == expenseId);
+            if (expenseToRemove != null)
             {
-                var expense = Expenses.FirstOrDefault(e => e.ExpenseID == expenseId);
-                if (expense != null)
-                {
-                    Expenses.Remove(expense);
-                }
+                Expenses.Remove(expenseToRemove);
+                Console.WriteLine($"Expense with ID {expenseId} deleted successfully.");
             }
+        }
+
+        /// <summary>
+        /// Update the user's income and save it to the database.
+        /// </summary>
+        public static void UpdateIncome(decimal newIncome)
+        {
+            Income = newIncome;
+            DatabaseHelper.UpdateIncome(UserID, newIncome);
+
+            Console.WriteLine($"Income updated for UserID: {UserID}");
+        }
+
+        /// <summary>
+        /// Convert currency amounts based on predefined exchange rates.
+        /// </summary>
+        private static decimal ConvertCurrency(decimal amount, string fromCurrency, string toCurrency)
+        {
+            const decimal USD_TO_IDR_RATE = 14000; // Conversion rate: $1 = Rp14,000
+
+            if (fromCurrency == "$" && toCurrency == "Rp")
+            {
+                return amount * USD_TO_IDR_RATE;
+            }
+            else if (fromCurrency == "Rp" && toCurrency == "$")
+            {
+                return amount / USD_TO_IDR_RATE;
+            }
+
+            return amount; // No conversion needed if currencies are the same
+        }
+
+        /// <summary>
+        /// Converts an expense's amount to the user's currency for display.
+        /// </summary>
+        private static decimal ConvertCurrencyForDisplay(decimal amount, string fromCurrency)
+        {
+            return ConvertCurrency(amount, fromCurrency, CurrencySymbol);
         }
     }
 
@@ -111,5 +167,8 @@ namespace ExpensesTracker
         public decimal AmountSpent { get; set; }
         public string Currency { get; set; }
         public string Date { get; set; }
+
+        // New property for formatted display of Amount Spent
+        public string AmountSpentDisplay { get; set; }
     }
 }
