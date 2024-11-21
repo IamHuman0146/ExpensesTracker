@@ -6,10 +6,8 @@ namespace ExpensesTracker
 {
     public static class DatabaseHelper
     {
-        // Keep connectionString private
         private static readonly string connectionString = @"Data Source=C:\sqlite\db\ExpensesTracker;Version=3;";
 
-        // Provide a public method to access the connection string
         public static string GetConnectionString()
         {
             return connectionString;
@@ -26,7 +24,8 @@ namespace ExpensesTracker
                         Email TEXT NOT NULL UNIQUE,
                         Password TEXT NOT NULL,
                         Age INTEGER NOT NULL,
-                        Gender TEXT
+                        Gender TEXT,
+                        Income REAL DEFAULT 0
                     );
                     CREATE TABLE IF NOT EXISTS Expenses (
                         ExpenseID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,16 +37,41 @@ namespace ExpensesTracker
                         Date TEXT NOT NULL,
                         FOREIGN KEY (UserID) REFERENCES Users(UserID)
                     );
-                    CREATE TABLE IF NOT EXISTS Income (
-                        IncomeID INTEGER PRIMARY KEY AUTOINCREMENT,
-                        UserID INTEGER NOT NULL,
-                        Amount REAL NOT NULL,
-                        Currency TEXT NOT NULL,
-                        Date TEXT NOT NULL,
-                        FOREIGN KEY (UserID) REFERENCES Users(UserID)
-                    );", connection);
+                ", connection);
                 command.ExecuteNonQuery();
             }
+        }
+
+        public static bool ValidateUser(string email, string password, out int userId, out int age, out string gender, out decimal income)
+        {
+            userId = 0;
+            age = 0;
+            gender = string.Empty;
+            income = 0;
+
+            using (var connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+                var command = new SQLiteCommand(
+                    "SELECT UserID, Age, Gender, Income FROM Users WHERE Email = @Email AND Password = @Password",
+                    connection);
+
+                command.Parameters.AddWithValue("@Email", email);
+                command.Parameters.AddWithValue("@Password", password);
+
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        userId = reader.GetInt32(0);
+                        age = reader.GetInt32(1);
+                        gender = reader.GetString(2);
+                        income = reader.GetDecimal(3);
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         public static bool AddUser(string email, string password, int age, string gender)
@@ -57,69 +81,56 @@ namespace ExpensesTracker
                 using (var connection = new SQLiteConnection(connectionString))
                 {
                     connection.Open();
-                    var command = new SQLiteCommand("INSERT INTO Users (Email, Password, Age, Gender) VALUES (@Email, @Password, @Age, @Gender)", connection);
+                    var command = new SQLiteCommand(
+                        "INSERT INTO Users (Email, Password, Age, Gender, Income) VALUES (@Email, @Password, @Age, @Gender, @Income)",
+                        connection);
+
                     command.Parameters.AddWithValue("@Email", email);
                     command.Parameters.AddWithValue("@Password", password);
                     command.Parameters.AddWithValue("@Age", age);
                     command.Parameters.AddWithValue("@Gender", gender);
+                    command.Parameters.AddWithValue("@Income", 0); // Default income is 0
+
                     command.ExecuteNonQuery();
                     return true;
                 }
             }
-            catch (SQLiteException ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Error adding user: {ex.Message}");
                 return false;
             }
         }
 
-        public static bool ValidateUser(string email, string password, out int age, out string gender)
+        public static void UpdateIncome(int userId, decimal newIncome)
         {
-            age = 0;
-            gender = string.Empty;
-
             using (var connection = new SQLiteConnection(connectionString))
             {
                 connection.Open();
-                var command = new SQLiteCommand("SELECT Age, Gender FROM Users WHERE Email = @Email AND Password = @Password", connection);
-                command.Parameters.AddWithValue("@Email", email);
-                command.Parameters.AddWithValue("@Password", password);
-                var reader = command.ExecuteReader();
+                var command = new SQLiteCommand(
+                    "UPDATE Users SET Income = @Income WHERE UserID = @UserID",
+                    connection);
 
-                if (reader.Read())
-                {
-                    age = reader.GetInt32(0);
-                    gender = reader.GetString(1);
-                    return true;
-                }
-                return false;
+                command.Parameters.AddWithValue("@Income", newIncome);
+                command.Parameters.AddWithValue("@UserID", userId);
+
+                command.ExecuteNonQuery();
             }
         }
 
-        public static bool AddExpense(int userId, string itemName, string itemType, decimal amountSpent, string currency, string date)
+        public static int GetUserIdByEmail(string email)
         {
-            try
+            using (var connection = new SQLiteConnection(connectionString))
             {
-                using (var connection = new SQLiteConnection(connectionString))
-                {
-                    connection.Open();
-                    var command = new SQLiteCommand(@"
-                        INSERT INTO Expenses (UserID, ItemName, ItemType, AmountSpent, Currency, Date) 
-                        VALUES (@UserID, @ItemName, @ItemType, @AmountSpent, @Currency, @Date)", connection);
-                    command.Parameters.AddWithValue("@UserID", userId);
-                    command.Parameters.AddWithValue("@ItemName", itemName);
-                    command.Parameters.AddWithValue("@ItemType", itemType);
-                    command.Parameters.AddWithValue("@AmountSpent", amountSpent);
-                    command.Parameters.AddWithValue("@Currency", currency);
-                    command.Parameters.AddWithValue("@Date", date);
-                    command.ExecuteNonQuery();
-                    return true;
-                }
-            }
-            catch (SQLiteException ex)
-            {
-                Console.WriteLine($"Error adding expense: {ex.Message}");
-                return false;
+                connection.Open();
+                var command = new SQLiteCommand(
+                    "SELECT UserID FROM Users WHERE Email = @Email",
+                    connection);
+
+                command.Parameters.AddWithValue("@Email", email);
+
+                var result = command.ExecuteScalar();
+                return result != null ? Convert.ToInt32(result) : 0;
             }
         }
 
@@ -127,80 +138,117 @@ namespace ExpensesTracker
         {
             var expenses = new List<Expense>();
 
-            using (var connection = new SQLiteConnection(connectionString))
+            try
             {
-                connection.Open();
-                var command = new SQLiteCommand("SELECT * FROM Expenses WHERE UserID = @UserID", connection);
-                command.Parameters.AddWithValue("@UserID", userId);
-
-                using (var reader = command.ExecuteReader())
+                using (var connection = new SQLiteConnection(GetConnectionString()))
                 {
-                    while (reader.Read())
+                    connection.Open();
+                    var command = new SQLiteCommand("SELECT * FROM Expenses WHERE UserID = @UserID", connection);
+                    command.Parameters.AddWithValue("@UserID", userId);
+
+                    using (var reader = command.ExecuteReader())
                     {
-                        expenses.Add(new Expense
+                        while (reader.Read())
                         {
-                            ExpenseID = reader.GetInt32(reader.GetOrdinal("ExpenseID")),
-                            UserID = reader.GetInt32(reader.GetOrdinal("UserID")),
-                            ItemName = reader.GetString(reader.GetOrdinal("ItemName")),
-                            ItemType = reader.GetString(reader.GetOrdinal("ItemType")),
-                            AmountSpent = reader.GetDecimal(reader.GetOrdinal("AmountSpent")),
-                            Currency = reader.GetString(reader.GetOrdinal("Currency")),
-                            Date = reader.GetString(reader.GetOrdinal("Date"))
-                        });
+                            expenses.Add(new Expense
+                            {
+                                ExpenseID = reader.GetInt32(reader.GetOrdinal("ExpenseID")),
+                                UserID = reader.GetInt32(reader.GetOrdinal("UserID")),
+                                ItemName = reader.GetString(reader.GetOrdinal("ItemName")),
+                                ItemType = reader.GetString(reader.GetOrdinal("ItemType")),
+                                AmountSpent = reader.GetDecimal(reader.GetOrdinal("AmountSpent")),
+                                Currency = reader.GetString(reader.GetOrdinal("Currency")),
+                                Date = reader.GetString(reader.GetOrdinal("Date"))
+                            });
+                        }
                     }
                 }
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine($"SQLite Error: {ex.Message}");
             }
 
             return expenses;
         }
 
-        public static bool UpdateExpense(int expenseId, int userId, string itemName, string itemType, decimal amountSpent, string currency, string date)
+
+        public static bool AddExpense(int userId, string itemName, string itemType, decimal amountSpent, string currency, string date)
         {
             try
             {
-                using (var connection = new SQLiteConnection(connectionString))
+                using (var connection = new SQLiteConnection(GetConnectionString()))
                 {
                     connection.Open();
                     var command = new SQLiteCommand(@"
-                        UPDATE Expenses SET ItemName = @ItemName, ItemType = @ItemType, AmountSpent = @AmountSpent, Currency = @Currency, Date = @Date 
-                        WHERE ExpenseID = @ExpenseID AND UserID = @UserID", connection);
-                    command.Parameters.AddWithValue("@ExpenseID", expenseId);
-                    command.Parameters.AddWithValue("@UserID", userId);
+                INSERT INTO Expenses (UserID, ItemName, ItemType, AmountSpent, Currency, Date)
+                VALUES (@UserID, @ItemName, @ItemType, @AmountSpent, @Currency, @Date)", connection);
+
+                    command.Parameters.AddWithValue("@UserID", userId); // Ensure the correct UserID is used
                     command.Parameters.AddWithValue("@ItemName", itemName);
                     command.Parameters.AddWithValue("@ItemType", itemType);
                     command.Parameters.AddWithValue("@AmountSpent", amountSpent);
                     command.Parameters.AddWithValue("@Currency", currency);
                     command.Parameters.AddWithValue("@Date", date);
+
                     command.ExecuteNonQuery();
                     return true;
                 }
             }
-            catch (SQLiteException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Error updating expense: {ex.Message}");
+                Console.WriteLine($"Error adding expense: {ex.Message}");
                 return false;
             }
         }
 
-        public static bool DeleteExpense(int expenseId, int userId)
+
+        public static void UpdateExpense(int expenseId, string itemName, string itemType, decimal amountSpent, string currency, string date)
         {
             try
             {
-                using (var connection = new SQLiteConnection(connectionString))
+                using (var connection = new SQLiteConnection(GetConnectionString()))
                 {
                     connection.Open();
-                    var command = new SQLiteCommand("DELETE FROM Expenses WHERE ExpenseID = @ExpenseID AND UserID = @UserID", connection);
+                    var command = new SQLiteCommand(@"
+                UPDATE Expenses
+                SET ItemName = @ItemName, ItemType = @ItemType, AmountSpent = @AmountSpent, Currency = @Currency, Date = @Date
+                WHERE ExpenseID = @ExpenseID", connection);
+
                     command.Parameters.AddWithValue("@ExpenseID", expenseId);
-                    command.Parameters.AddWithValue("@UserID", userId);
+                    command.Parameters.AddWithValue("@ItemName", itemName);
+                    command.Parameters.AddWithValue("@ItemType", itemType);
+                    command.Parameters.AddWithValue("@AmountSpent", amountSpent);
+                    command.Parameters.AddWithValue("@Currency", currency);
+                    command.Parameters.AddWithValue("@Date", date);
+
                     command.ExecuteNonQuery();
-                    return true;
                 }
             }
-            catch (SQLiteException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting expense: {ex.Message}");
-                return false;
+                Console.WriteLine($"Error updating expense: {ex.Message}");
             }
         }
+
+        public static void DeleteExpense(int expenseId)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(GetConnectionString()))
+                {
+                    connection.Open();
+                    var command = new SQLiteCommand("DELETE FROM Expenses WHERE ExpenseID = @ExpenseID", connection);
+
+                    command.Parameters.AddWithValue("@ExpenseID", expenseId);
+                    command.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting expense: {ex.Message}");
+            }
+        }
+
     }
 }

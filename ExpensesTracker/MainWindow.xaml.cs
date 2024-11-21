@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
 
 namespace ExpensesTracker
 {
@@ -10,6 +8,7 @@ namespace ExpensesTracker
         public MainWindow()
         {
             InitializeComponent();
+
             // Set the window to fullscreen on startup
             this.WindowState = WindowState.Maximized;
             this.ResizeMode = ResizeMode.NoResize; // Disable resizing
@@ -21,20 +20,28 @@ namespace ExpensesTracker
             string email = EmailTextBox.Text;
             string password = PasswordBox.Password;
 
-            int age;
+            int userId, age;
             string gender;
+            decimal income;
 
-            if (DatabaseHelper.ValidateUser(email, password, out age, out gender)) // Correct number of arguments
+            if (DatabaseHelper.ValidateUser(email, password, out userId, out age, out gender, out income))
             {
+                // Update the logged-in user's data
+                ExpenseDataStore.UserID = userId;
                 ExpenseDataStore.UserEmail = email;
                 ExpenseDataStore.UserAge = age;
                 ExpenseDataStore.UserGender = gender;
+                ExpenseDataStore.Income = income;
 
                 MessageBox.Show("Login successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                // Open MainPage and close this login window
-                MainPage mainPage = new MainPage();
-                mainPage.WindowState = WindowState.Maximized; // Ensure MainPage opens in fullscreen
+                // Navigate to the MainPage
+                MainPage mainPage = new MainPage
+                {
+                    WindowState = WindowState.Maximized,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize
+                };
                 mainPage.Show();
 
                 // Close the login window
@@ -45,6 +52,7 @@ namespace ExpensesTracker
                 MessageBox.Show("Invalid email or password.", "Login Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -61,8 +69,9 @@ namespace ExpensesTracker
             Application.Current.Shutdown();
         }
 
-        private void SignUpText_MouseDown(object sender, MouseButtonEventArgs e)
+        private void SignUpText_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            // Replace the content with SignUpPage
             this.Content = new SignUpPage();
         }
 
@@ -71,9 +80,9 @@ namespace ExpensesTracker
             MessageBox.Show("Google login is not implemented yet.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void Grid_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (e.ButtonState == MouseButtonState.Pressed)
+            if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
             {
                 DragMove();
             }

@@ -169,6 +169,7 @@
     <Compile Include="SignUpPage.xaml.cs">
       <DependentUpon>SignUpPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UserSession.cs" />
     <Compile Include="ViewAnalysisPage.xaml.cs">
       <DependentUpon>ViewAnalysisPage.xaml</DependentUpon>
     </Compile>

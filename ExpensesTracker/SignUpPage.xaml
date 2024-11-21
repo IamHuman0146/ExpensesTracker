@@ -131,7 +131,7 @@
                     <Button Content="Create Account" Height="45" Style="{StaticResource ModernButton}" 
                             FontSize="16" Click="CreateAccountButton_Click" Margin="0,0,0,20"/>
                     <!-- Back Button Moved Here -->
-                    <Button Content="Back" Width="80" Height="30" Style="{StaticResource BackButtonStyle}" 
+                    <Button Content="Back" Width="296" Height="30" Style="{StaticResource BackButtonStyle}" 
                             HorizontalAlignment="Center" Click="BackButton_Click"/>
                 </StackPanel>
             </Border>

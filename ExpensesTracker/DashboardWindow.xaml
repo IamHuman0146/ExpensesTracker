@@ -187,7 +187,7 @@
                             <Border Background="White" 
                                     CornerRadius="24" 
                                     Margin="0,20,0,20"
-                                    Padding="20,30,20,30">
+                                    Padding="20,30,20,30" Height="350">
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="15" ShadowDepth="5" Color="#000000" Opacity="0.2"/>
                                 </Border.Effect>
