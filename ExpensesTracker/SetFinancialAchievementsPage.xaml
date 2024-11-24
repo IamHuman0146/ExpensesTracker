@@ -12,12 +12,6 @@
         <TextBlock Text="Goal Amount:"/>
         <TextBox x:Name="GoalAmountTextBox" Margin="0,0,0,10" TextChanged="GoalAmountTextBox_TextChanged" />
 
-        <TextBlock Text="Currency:"/>
-        <ComboBox x:Name="CurrencyComboBox" Margin="0,0,0,10" SelectionChanged="CurrencyComboBox_SelectionChanged">
-            <ComboBoxItem Content="Rupiah" />
-            <ComboBoxItem Content="Dollar" />
-        </ComboBox>
-
         <TextBlock Text="Budget:"/>
         <TextBlock x:Name="BudgetLabel" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 

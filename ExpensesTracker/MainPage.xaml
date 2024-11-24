@@ -127,7 +127,7 @@
                     </Button>
 
                     <Button x:Name="SavingTipsButton" Style="{StaticResource SidebarButtonStyle}" 
-                            Click="NavigateToSavingTips" Tag="💡">
+                            Click="NavigateToSavingTips" Tag="✨">
                         <TextBlock Text="AI Saving Tips"/>
                     </Button>
 

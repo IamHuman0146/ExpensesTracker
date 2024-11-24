@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 
 namespace ExpensesTracker
 {
@@ -15,53 +13,101 @@ namespace ExpensesTracker
         {
             InitializeComponent();
 
-            // Load expenses for the logged-in user
+            InitializeMonthFilter();
             LoadExpenses();
-            ExpensesDataGrid.ItemsSource = ExpenseDataStore.Expenses;
+            UpdateIncomeAndRemainingDisplay();
 
-            UpdateIncomeDisplay();
-            UpdateRemainingIncomeDisplay();
-
-            // Refresh income and remaining income when expenses change
+            // Automatically refresh when the Expenses collection changes
             ExpenseDataStore.Expenses.CollectionChanged += (s, e) =>
             {
-                UpdateRemainingIncomeDisplay();
-                ExpensesDataGrid.Items.Refresh();
+                RefreshDataGrid();
+                UpdateIncomeAndRemainingDisplay();
             };
 
-            // Initially disable the Edit and Delete buttons
             ToggleEditDeleteButtons(false);
+        }
+
+        private void InitializeMonthFilter()
+        {
+            int currentMonth = DateTime.Now.Month;
+            MonthFilterComboBox.SelectedIndex = currentMonth; // Set the ComboBox default to the current month
         }
 
         private void LoadExpenses()
         {
-            try
-            {
-                ExpenseDataStore.LoadExpenses();
+            // Reload expenses from data store
+            ExpenseDataStore.LoadExpenses();
 
-                foreach (var expense in ExpenseDataStore.Expenses)
-                {
-                    expense.AmountSpentDisplay = $"{ExpenseDataStore.CurrencySymbol}{expense.AmountSpent:N0}";
-                }
-
-                ExpensesDataGrid.Items.Refresh();
-            }
-            catch (Exception ex)
+            // Format the amount display for all expenses
+            foreach (var expense in ExpenseDataStore.Expenses)
             {
-                MessageBox.Show($"Failed to load expenses: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                expense.AmountSpentDisplay = $"{ExpenseDataStore.CurrencySymbol}{expense.AmountSpent:N0}";
             }
+
+            RefreshDataGrid();
         }
 
-        private void UpdateIncomeDisplay()
+        private void RefreshDataGrid()
         {
-            IncomeTextBlock.Text = $"{ExpenseDataStore.CurrencySymbol}{ExpenseDataStore.Income:N0}";
+            int selectedMonth = GetSelectedMonth();
+
+            if (selectedMonth == -1) // All data
+            {
+                ExpensesDataGrid.ItemsSource = ExpenseDataStore.Expenses;
+            }
+            else // Filter by month
+            {
+                var filteredExpenses = ExpenseDataStore.Expenses
+                    .Where(expense => DateTime.Parse(expense.Date).Month == selectedMonth)
+                    .ToList();
+
+                ExpensesDataGrid.ItemsSource = filteredExpenses;
+            }
+
+            ExpensesDataGrid.Items.Refresh();
         }
 
-        private void UpdateRemainingIncomeDisplay()
+        private int GetSelectedMonth()
         {
-            decimal remainingIncome = ExpenseDataStore.RemainingIncome;
+            if (MonthFilterComboBox.SelectedItem == null) return -1;
+            return Convert.ToInt32((MonthFilterComboBox.SelectedItem as ComboBoxItem)?.Tag);
+        }
+
+        private void UpdateIncomeAndRemainingDisplay()
+        {
+            int selectedMonth = GetSelectedMonth();
+            int currentMonth = DateTime.Now.Month;
+            string monthName = selectedMonth == -1
+                ? DateTime.Now.ToString("MMMM")
+                : new DateTime(DateTime.Now.Year, selectedMonth, 1).ToString("MMMM");
+
+            IncomeLabel.Text = $"Current Income ({monthName})";
+            RemainingIncomeLabel.Text = $"Remaining Income ({monthName})";
+
+            decimal currentIncome = ExpenseDataStore.Income;
+
+            decimal remainingIncome;
+            if (selectedMonth == -1)
+            {
+                remainingIncome = currentIncome - ExpenseDataStore.Expenses
+                    .Where(e => DateTime.Parse(e.Date).Month == currentMonth)
+                    .Sum(e => e.AmountSpent);
+            }
+            else
+            {
+                remainingIncome = currentIncome - ExpenseDataStore.Expenses
+                    .Where(e => DateTime.Parse(e.Date).Month == selectedMonth)
+                    .Sum(e => e.AmountSpent);
+            }
+
+            IncomeTextBlock.Text = $"{ExpenseDataStore.CurrencySymbol}{currentIncome:N0}";
             RemainingIncomeTextBlock.Text = $"{ExpenseDataStore.CurrencySymbol}{remainingIncome:N0}";
-            RemainingIncomeTextBlock.Foreground = remainingIncome < 0 ? Brushes.Red : Brushes.Green;
+        }
+
+        private void MonthFilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            RefreshDataGrid();
+            UpdateIncomeAndRemainingDisplay();
         }
 
         private void ExpensesDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -70,28 +116,12 @@ namespace ExpensesTracker
             ToggleEditDeleteButtons(_selectedExpense != null);
         }
 
-        private void FilterByMonth_Click(object sender, RoutedEventArgs e)
-        {
-            if (MonthFilterComboBox.SelectedItem == null) return;
-
-            var selectedMonth = Convert.ToInt32((MonthFilterComboBox.SelectedItem as ComboBoxItem)?.Tag);
-            var filteredExpenses = ExpenseDataStore.Expenses
-                .Where(expense =>
-                {
-                    var expenseDate = DateTime.Parse(expense.Date);
-                    return expenseDate.Month == selectedMonth;
-                })
-                .ToList();
-
-            ExpensesDataGrid.ItemsSource = filteredExpenses;
-        }
-
         private void EditExpense_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedExpense == null) return;
 
             EditItemNameTextBox.Text = _selectedExpense.ItemName;
-            EditAmountSpentTextBox.Text = _selectedExpense.AmountSpent.ToString("N0");
+            EditAmountSpentTextBox.Text = _selectedExpense.AmountSpent.ToString();
             EditExpenseDatePicker.SelectedDate = DateTime.Parse(_selectedExpense.Date);
 
             foreach (ComboBoxItem item in EditItemTypeComboBox.Items)
@@ -103,32 +133,56 @@ namespace ExpensesTracker
                 }
             }
 
-            EditSectionScrollViewer.Visibility = Visibility.Visible;
-            ToggleEditDeleteButtons(false);
+            EditOverlay.Visibility = Visibility.Visible;
+            MainContent.IsEnabled = false;
         }
 
         private void SaveEdit_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedExpense == null) return;
 
+            // Validate the input fields
             string itemName = EditItemNameTextBox.Text;
             string itemType = (EditItemTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString();
-            decimal amountSpent = decimal.TryParse(EditAmountSpentTextBox.Text, out decimal amount) ? amount : _selectedExpense.AmountSpent;
-            string date = EditExpenseDatePicker.SelectedDate?.ToString("yyyy-MM-dd") ?? _selectedExpense.Date;
+            bool isAmountValid = decimal.TryParse(EditAmountSpentTextBox.Text, out decimal amountSpent);
+            string date = EditExpenseDatePicker.SelectedDate?.ToString("yyyy-MM-dd");
 
+            if (string.IsNullOrWhiteSpace(itemName))
+            {
+                MessageBox.Show("Item Name cannot be empty.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(itemType))
+            {
+                MessageBox.Show("Please select an item type.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!isAmountValid || amountSpent <= 0)
+            {
+                MessageBox.Show("Amount Spent must be a valid positive number.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(date))
+            {
+                MessageBox.Show("Please select a valid date.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Update expense details
             ExpenseDataStore.UpdateExpense(_selectedExpense.ExpenseID, itemName, itemType, amountSpent, ExpenseDataStore.CurrencySymbol, date);
+
             LoadExpenses();
-
-            EditSectionScrollViewer.Visibility = Visibility.Collapsed;
-            ToggleEditDeleteButtons(true);
-
-            MessageBox.Show("Expense updated successfully.", "Edit Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            EditOverlay.Visibility = Visibility.Collapsed;
+            MainContent.IsEnabled = true;
         }
 
         private void CancelEdit_Click(object sender, RoutedEventArgs e)
         {
-            EditSectionScrollViewer.Visibility = Visibility.Collapsed;
-            ToggleEditDeleteButtons(true);
+            EditOverlay.Visibility = Visibility.Collapsed;
+            MainContent.IsEnabled = true;
         }
 
         private void DeleteExpense_Click(object sender, RoutedEventArgs e)
@@ -141,9 +195,7 @@ namespace ExpensesTracker
             if (result == MessageBoxResult.Yes)
             {
                 ExpenseDataStore.DeleteExpense(_selectedExpense.ExpenseID);
-                _selectedExpense = null;
                 LoadExpenses();
-
                 MessageBox.Show("Expense deleted successfully.", "Delete Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }

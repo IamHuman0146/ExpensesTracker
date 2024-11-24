@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 using System.Linq;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -10,124 +10,208 @@ namespace ExpensesTracker
 {
     public partial class ViewFinancialAchievementsPage : Page
     {
+        private string primaryGoalName;
+        private Dictionary<string, string> goalStatuses = new Dictionary<string, string>();
+        private readonly List<string> statusOptions = new List<string> { "Spent", "Kept" };
+        private string goalsFilePath => $"Goals_{UserSession.CurrentUserId}.json";
+        private string goalStatusesFilePath => $"GoalStatuses_{UserSession.CurrentUserId}.json";
+
         public ViewFinancialAchievementsPage()
         {
             InitializeComponent();
+
+            // Subscribe to budget updates
+            ExpenseDataStore.BudgetUpdated += OnBudgetUpdated;
+
+            LoadPrimaryGoal();
+            LoadGoalStatuses();
             LoadAchievements();
+
+            // Update budget label when page is loaded
+            UpdateBudgetLabel();
+        }
+
+        private void LoadPrimaryGoal()
+        {
+            string primaryGoalFilePath = $"PrimaryGoal_{UserSession.CurrentUserId}.json";
+            if (File.Exists(primaryGoalFilePath))
+                primaryGoalName = File.ReadAllText(primaryGoalFilePath);
+        }
+
+        private void SavePrimaryGoal()
+        {
+            File.WriteAllText($"PrimaryGoal_{UserSession.CurrentUserId}.json", primaryGoalName ?? string.Empty);
+        }
+
+        private void LoadGoalStatuses()
+        {
+            if (File.Exists(goalStatusesFilePath))
+            {
+                string data = File.ReadAllText(goalStatusesFilePath);
+                goalStatuses = JsonSerializer.Deserialize<Dictionary<string, string>>(data) ?? new Dictionary<string, string>();
+            }
+        }
+
+        private void SaveGoalStatuses()
+        {
+            File.WriteAllText(goalStatusesFilePath, JsonSerializer.Serialize(goalStatuses));
+        }
+
+        private void SaveAchievements()
+        {
+            // Ensure goalStatuses dictionary is updated before saving
+            if (AchievedGoalsDataGrid.ItemsSource is List<AchievedGoalData> achievedGoals)
+            {
+                foreach (var goal in achievedGoals)
+                {
+                    goalStatuses[goal.Name] = goal.Status;
+                }
+            }
+
+            // Save the updated statuses to a file
+            SaveGoalStatuses();
+            ExpenseDataStore.NotifyBudgetUpdated();
         }
 
         private void LoadAchievements()
         {
-            string filePath = $"Goals_{UserSession.CurrentUserId}.json";
-
-            if (!File.Exists(filePath))
+            if (!File.Exists(goalsFilePath))
             {
-                MessageBox.Show("No financial goals found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
                 GoalsDataGrid.ItemsSource = null;
+                AchievedGoalsDataGrid.ItemsSource = null;
+                UpdateBudgetLabel();
                 return;
             }
 
-            try
-            {
-                string data = File.ReadAllText(filePath);
-                var goals = JsonSerializer.Deserialize<List<Goal>>(data) ?? new List<Goal>();
+            string data = File.ReadAllText(goalsFilePath);
+            var goals = JsonSerializer.Deserialize<List<Goal>>(data) ?? new List<Goal>();
+            decimal currentBudget = ExpenseDataStore.CalculatedBudget;
 
-                var achievementData = goals.Select(goal => new
+            decimal primaryGoalBudget = 0;
+            decimal sharedBudget = currentBudget;
+
+            if (!string.IsNullOrWhiteSpace(primaryGoalName))
+            {
+                var primaryGoal = goals.FirstOrDefault(g => g.Name == primaryGoalName);
+                if (primaryGoal != null)
+                {
+                    primaryGoalBudget = Math.Min(currentBudget * 0.7m, primaryGoal.Amount);
+                    sharedBudget = currentBudget - primaryGoalBudget;
+                }
+            }
+
+            var completedGoals = goals.Where(g => goalStatuses.ContainsKey(g.Name)).ToList();
+            var inProgressGoals = goals.Except(completedGoals).ToList();
+
+            GoalsDataGrid.ItemsSource = inProgressGoals.Select(goal =>
+            {
+                decimal allocatedBudget = primaryGoalName == goal.Name ? primaryGoalBudget : sharedBudget / inProgressGoals.Count;
+                decimal progress = Math.Min((allocatedBudget / goal.Amount) * 100, 100);
+                return new AchievementData
                 {
                     Name = goal.Name,
-                    Progress = CalculateProgress(goal.Amount, goal.StartDate, goal.Currency),
-                    ProgressText = CalculateProgress(goal.Amount, goal.StartDate, goal.Currency) >= 100
-                        ? "Achieved"
-                        : $"{CalculateProgress(goal.Amount, goal.StartDate, goal.Currency):F2}% completed"
-                }).ToList();
+                    AmountSet = $"{goal.Currency}{goal.Amount:N2}",
+                    StartDate = goal.StartDate.ToString("yyyy-MM-dd"),
+                    Progress = progress,
+                    ProgressText = $"{progress:F2}%",
+                    IsPrimary = goal.Name == primaryGoalName
+                };
+            }).ToList();
 
-                GoalsDataGrid.ItemsSource = achievementData;
-            }
-            catch (Exception ex)
+            AchievedGoalsDataGrid.ItemsSource = completedGoals.Select(goal => new AchievedGoalData
             {
-                MessageBox.Show($"Error loading achievements: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+                Name = goal.Name,
+                AmountSet = $"{goal.Currency}{goal.Amount:N2}",
+                StartDate = goal.StartDate.ToString("yyyy-MM-dd"),
+                Status = goalStatuses.ContainsKey(goal.Name) ? goalStatuses[goal.Name] : "Kept"
+            }).ToList();
+
+            UpdateBudgetLabel();
         }
 
-        private decimal CalculateProgress(decimal goalAmount, DateTime startDate, string currency)
+        private void UpdateBudgetLabel()
         {
-            int monthsPassed = GetMonthsSince(startDate);
-            decimal monthlyIncome = UserSession.Income;
-
-            // Convert monthly income to the goal's currency if necessary
-            decimal savedAmount = monthsPassed * ConvertCurrency(monthlyIncome, UserSession.CurrencySymbol, currency);
-
-            // Calculate progress percentage and cap it at 100%
-            return Math.Min((savedAmount / goalAmount) * 100, 100);
+            BudgetLabel.Text = $"{ExpenseDataStore.CurrencySymbol}{ExpenseDataStore.CalculatedBudget:N0}";
         }
 
-        private decimal ConvertCurrency(decimal amount, string fromCurrency, string toCurrency)
+        private void OnBudgetUpdated()
         {
-            const decimal USD_TO_IDR_RATE = 14000; // Example conversion rate: $1 = Rp14,000
-
-            if (fromCurrency == "$" && toCurrency == "Rp")
-                return amount * USD_TO_IDR_RATE;
-            else if (fromCurrency == "Rp" && toCurrency == "$")
-                return amount / USD_TO_IDR_RATE;
-
-            return amount; // No conversion needed if currencies match
+            UpdateBudgetLabel();
+            LoadAchievements();
         }
 
-        private int GetMonthsSince(DateTime startDate)
+        private void SetPrimaryGoal_Click(object sender, RoutedEventArgs e)
         {
-            DateTime today = DateTime.Now;
-            return Math.Max((today.Year - startDate.Year) * 12 + (today.Month - startDate.Month), 0);
+            var selectedGoal = GoalsDataGrid.SelectedItem as AchievementData;
+            if (selectedGoal == null) return;
+
+            primaryGoalName = selectedGoal.Name;
+            SavePrimaryGoal();
+            LoadAchievements();
         }
 
         private void DeleteGoal_Click(object sender, RoutedEventArgs e)
         {
-            if (GoalsDataGrid.SelectedItem == null)
+            var selectedGoal = GoalsDataGrid.SelectedItem as AchievementData;
+            if (selectedGoal == null) return;
+
+            if (!File.Exists(goalsFilePath)) return;
+
+            string data = File.ReadAllText(goalsFilePath);
+            var goals = JsonSerializer.Deserialize<List<Goal>>(data) ?? new List<Goal>();
+            goals.RemoveAll(g => g.Name == selectedGoal.Name);
+            if (primaryGoalName == selectedGoal.Name) primaryGoalName = null;
+
+            File.WriteAllText(goalsFilePath, JsonSerializer.Serialize(goals));
+            SavePrimaryGoal();
+            LoadAchievements();
+        }
+
+        private void AchievedGoalsDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            var selectedGoal = AchievedGoalsDataGrid.SelectedItem as AchievedGoalData;
+            if (selectedGoal == null) return;
+
+            MessageBoxResult result = MessageBox.Show($"Do you want to mark this goal as 'Spent' or 'Kept'?\n\n" +
+                                                      $"Goal: {selectedGoal.Name}\nAmount: {selectedGoal.AmountSet}",
+                                                      "Mark Goal", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
             {
-                MessageBox.Show("Please select a goal to delete.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                decimal amount = decimal.Parse(selectedGoal.AmountSet.Replace("$", "").Replace(",", ""));
+                ExpenseDataStore.ApplyGoalOutcome(selectedGoal.Name, amount, "Spent");
+                selectedGoal.Status = "Spent";
+                SaveAchievements();
             }
-
-            string filePath = $"Goals_{UserSession.CurrentUserId}.json";
-
-            if (!File.Exists(filePath))
+            else if (result == MessageBoxResult.No)
             {
-                MessageBox.Show("No goals found to delete.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                selectedGoal.Status = "Kept";
+                SaveAchievements();
             }
+            ExpenseDataStore.NotifyBudgetUpdated();
+        }
 
-            try
-            {
-                string data = File.ReadAllText(filePath);
-                var goals = JsonSerializer.Deserialize<List<Goal>>(data) ?? new List<Goal>();
-
-                // Get the selected goal
-                dynamic selectedGoal = GoalsDataGrid.SelectedItem;
-                string selectedGoalName = selectedGoal.Name;
-
-                // Remove the goal with the matching name
-                goals.RemoveAll(g => g.Name == selectedGoalName);
-
-                // Save updated goals back to the file
-                File.WriteAllText(filePath, JsonSerializer.Serialize(goals));
-
-                MessageBox.Show("Goal deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                // Reload the achievements
-                LoadAchievements();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error deleting goal: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+        private void ShowHelp_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Use this page to manage your financial goals and achievements.", "Help", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
-    // Goal class for deserialization
-    public class Goal
+    public class AchievementData
     {
         public string Name { get; set; }
-        public decimal Amount { get; set; }
-        public DateTime StartDate { get; set; }
-        public string Currency { get; set; }
+        public string AmountSet { get; set; }
+        public string StartDate { get; set; }
+        public decimal Progress { get; set; }
+        public string ProgressText { get; set; }
+        public bool IsPrimary { get; set; }
+    }
+
+    public class AchievedGoalData
+    {
+        public string Name { get; set; }
+        public string AmountSet { get; set; }
+        public string StartDate { get; set; }
+        public string Status { get; set; }
     }
 }

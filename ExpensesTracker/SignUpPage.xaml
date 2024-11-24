@@ -112,7 +112,7 @@
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
             <!-- Logo and Signup Form -->
             <Image Source="pack://application:,,,/ExpensesTracker;component/Images/logo.png" 
-                   Width="200" Height="75" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                   Width="200" Height="75" HorizontalAlignment="Center" Margin="0,0,0,0"/>
             <Border Background="White" CornerRadius="24" Padding="40,60" Width="400">
                 <StackPanel HorizontalAlignment="Center" Width="300">
                     <TextBlock Text="Create a New Account" FontSize="28" FontWeight="Bold" Foreground="#4F46E5" 

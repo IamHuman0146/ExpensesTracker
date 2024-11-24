@@ -1,118 +1,134 @@
 ﻿<Page x:Class="ExpensesTracker.ViewAnalysisPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      Title="View Analysis" Height="500" Width="800">
+      Title="View Analysis" Height="800" Width="1000">
+    <Grid>
+        <!-- Main Content -->
+        <Grid x:Name="MainContent" Margin="24,24,24,206">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-    <Grid Margin="24" x:Name="MainGrid">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+            <!-- Header Section -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                <TextBlock Text="Expense Analysis" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,16"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-        <!-- Header Section -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="Expense Analysis" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,16"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="#F5F5F5" CornerRadius="8" Padding="16" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock x:Name="IncomeLabel" Text="Current Income" FontSize="14" Opacity="0.7"/>
+                            <TextBlock x:Name="IncomeTextBlock" FontSize="20" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
 
-                <Border Grid.Column="0" Background="#F5F5F5" CornerRadius="8" Padding="16" Margin="0,0,8,0">
-                    <StackPanel>
-                        <TextBlock Text="Current Income" FontSize="14" Opacity="0.7"/>
-                        <TextBlock x:Name="IncomeTextBlock" FontSize="20" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <Border Grid.Column="1" Background="#F5F5F5" CornerRadius="8" Padding="16" Margin="8,0,0,0">
+                        <StackPanel>
+                            <TextBlock x:Name="RemainingIncomeLabel" Text="Remaining Income" FontSize="14" Opacity="0.7"/>
+                            <TextBlock x:Name="RemainingIncomeTextBlock" FontSize="20" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+
+            <!-- Month Filter Section -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <ComboBox x:Name="MonthFilterComboBox" Width="150" Height="36" Margin="0,0,8,0" 
+                          VerticalAlignment="Center" SelectionChanged="MonthFilterComboBox_SelectionChanged">
+                    <ComboBoxItem Content="All Data" Tag="-1"/>
+                    <ComboBoxItem Content="January" Tag="1"/>
+                    <ComboBoxItem Content="February" Tag="2"/>
+                    <ComboBoxItem Content="March" Tag="3"/>
+                    <ComboBoxItem Content="April" Tag="4"/>
+                    <ComboBoxItem Content="May" Tag="5"/>
+                    <ComboBoxItem Content="June" Tag="6"/>
+                    <ComboBoxItem Content="July" Tag="7"/>
+                    <ComboBoxItem Content="August" Tag="8"/>
+                    <ComboBoxItem Content="September" Tag="9"/>
+                    <ComboBoxItem Content="October" Tag="10"/>
+                    <ComboBoxItem Content="November" Tag="11"/>
+                    <ComboBoxItem Content="December" Tag="12"/>
+                </ComboBox>
+            </StackPanel>
+
+            <!-- DataGrid Section -->
+            <DataGrid Grid.Row="1" x:Name="ExpensesDataGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                      SelectionMode="Single" SelectionChanged="ExpensesDataGrid_SelectionChanged"
+                      Margin="0,16,0,0" MinHeight="500" VerticalAlignment="Stretch"
+                      Background="White" BorderBrush="#E0E0E0" BorderThickness="1"
+                      RowHeaderWidth="0" CanUserResizeRows="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Item Name" Binding="{Binding ItemName}" Width="*"/>
+                    <DataGridTextColumn Header="Item Type" Binding="{Binding ItemType}" Width="*"/>
+                    <DataGridTextColumn Header="Amount Spent" Binding="{Binding AmountSpentDisplay}" Width="*"/>
+                    <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Action Buttons -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button x:Name="EditButton" Content="Edit" Width="90" Height="36" Margin="8,0" Click="EditExpense_Click"/>
+                <Button x:Name="DeleteButton" Content="Delete" Width="90" Height="36" Margin="8,0" Click="DeleteExpense_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Edit Overlay -->
+        <Grid x:Name="EditOverlay" Visibility="Collapsed" Background="#80000000">
+            <Border Background="White" CornerRadius="12" MaxWidth="600" Margin="24"
+                    BorderBrush="#E0E0E0" BorderThickness="1"
+                    VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Grid Margin="24">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Edit Expense" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,24"/>
+
+                    <StackPanel Grid.Row="1" Margin="0,0,0,16">
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="Item Name" Margin="0,0,0,4" Opacity="0.7"/>
+                            <TextBox x:Name="EditItemNameTextBox" Height="36" Padding="8,0"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="Item Type" Margin="0,0,0,4" Opacity="0.7"/>
+                            <ComboBox x:Name="EditItemTypeComboBox" Height="36" Padding="8,0">
+                                <ComboBoxItem Content="Food"/>
+                                <ComboBoxItem Content="Transportation"/>
+                                <ComboBoxItem Content="Utilities"/>
+                                <ComboBoxItem Content="Entertainment"/>
+                                <ComboBoxItem Content="Healthcare"/>
+                                <ComboBoxItem Content="Education"/>
+                                <ComboBoxItem Content="Other"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="Amount Spent" Margin="0,0,0,4" Opacity="0.7"/>
+                            <TextBox x:Name="EditAmountSpentTextBox" Height="36" Padding="8,0"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="Date of Expense" Margin="0,0,0,4" Opacity="0.7"/>
+                            <DatePicker x:Name="EditExpenseDatePicker" Height="36"/>
+                        </StackPanel>
                     </StackPanel>
-                </Border>
 
-                <Border Grid.Column="1" Background="#F5F5F5" CornerRadius="8" Padding="16" Margin="8,0,0,0">
-                    <StackPanel>
-                        <TextBlock Text="Remaining Income" FontSize="14" Opacity="0.7"/>
-                        <TextBlock x:Name="RemainingIncomeTextBlock" FontSize="20" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                        <Button x:Name="SaveEditButton" Content="Save" Width="90" Height="36"
+                                Margin="8,0" Click="SaveEdit_Click"/>
+                        <Button x:Name="CancelEditButton" Content="Cancel" Width="90" Height="36"
+                                Margin="8,0,0,0" Click="CancelEdit_Click"/>
                     </StackPanel>
-                </Border>
-            </Grid>
-        </StackPanel>
-
-        <!-- New Month Filter Section -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <ComboBox x:Name="MonthFilterComboBox" Width="150" Margin="0,0,8,0" VerticalAlignment="Center">
-                <ComboBoxItem Content="January" Tag="1"/>
-                <ComboBoxItem Content="February" Tag="2"/>
-                <ComboBoxItem Content="March" Tag="3"/>
-                <ComboBoxItem Content="April" Tag="4"/>
-                <ComboBoxItem Content="May" Tag="5"/>
-                <ComboBoxItem Content="June" Tag="6"/>
-                <ComboBoxItem Content="July" Tag="7"/>
-                <ComboBoxItem Content="August" Tag="8"/>
-                <ComboBoxItem Content="September" Tag="9"/>
-                <ComboBoxItem Content="October" Tag="10"/>
-                <ComboBoxItem Content="November" Tag="11"/>
-                <ComboBoxItem Content="December" Tag="12"/>
-            </ComboBox>
-            <Button Content="Filter" Width="100" Height="30" VerticalAlignment="Center" Click="FilterByMonth_Click"/>
-        </StackPanel>
-
-        <!-- DataGrid Section -->
-        <DataGrid Grid.Row="1" x:Name="ExpensesDataGrid" AutoGenerateColumns="False" IsReadOnly="True"
-                  SelectionMode="Single" SelectionChanged="ExpensesDataGrid_SelectionChanged">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Item Name" Binding="{Binding ItemName}" Width="*"/>
-                <DataGridTextColumn Header="Item Type" Binding="{Binding ItemType}" Width="*"/>
-                <DataGridTextColumn Header="Amount Spent" Binding="{Binding AmountSpentDisplay}" Width="*"/>
-                <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <!-- Action Buttons -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button x:Name="EditButton" Content="Edit" Width="90" Height="36" Margin="8,0" Click="EditExpense_Click"/>
-            <Button x:Name="DeleteButton" Content="Delete" Width="90" Height="36" Margin="8,0" Click="DeleteExpense_Click"/>
-        </StackPanel>
-
-        <!-- Edit Section -->
-        <ScrollViewer Grid.Row="3" x:Name="EditSectionScrollViewer" VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed" Margin="0,16,0,0" Height="300">
-            <Border x:Name="EditSection" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="24">
-                <StackPanel>
-                    <TextBlock Text="Edit Expense" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,16"/>
-
-                    <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="Item Name" Margin="0,0,0,4" Opacity="0.7"/>
-                        <TextBox x:Name="EditItemNameTextBox" Height="36" Padding="8,0"/>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="Item Type" Margin="0,0,0,4" Opacity="0.7"/>
-                        <ComboBox x:Name="EditItemTypeComboBox" Height="36" Padding="8,0">
-                            <ComboBoxItem Content="Food"/>
-                            <ComboBoxItem Content="Transportation"/>
-                            <ComboBoxItem Content="Utilities"/>
-                            <ComboBoxItem Content="Entertainment"/>
-                            <ComboBoxItem Content="Healthcare"/>
-                            <ComboBoxItem Content="Education"/>
-                            <ComboBoxItem Content="Other"/>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="Amount Spent" Margin="0,0,0,4" Opacity="0.7"/>
-                        <TextBox x:Name="EditAmountSpentTextBox" Height="36" Padding="8,0"/>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="Date of Expense" Margin="0,0,0,4" Opacity="0.7"/>
-                        <DatePicker x:Name="EditExpenseDatePicker" Height="36"/>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                        <Button Content="Save" Width="90" Height="36" Margin="8,0" Click="SaveEdit_Click"/>
-                        <Button Content="Cancel" Width="90" Height="36" Margin="8,0,0,0" Click="CancelEdit_Click"/>
-                    </StackPanel>
-                </StackPanel>
+                </Grid>
             </Border>
-        </ScrollViewer>
+        </Grid>
     </Grid>
 </Page>

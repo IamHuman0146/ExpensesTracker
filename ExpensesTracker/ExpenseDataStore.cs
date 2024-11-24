@@ -10,13 +10,13 @@ namespace ExpensesTracker
 
         // User-specific data
         public static decimal Income { get; set; } = 0;
+        public static decimal CalculatedBudget { get; set; } = 0; // Budget calculated in SetGoals
         public static int UserID { get; set; }
         public static string UserEmail { get; set; }
         public static int UserAge { get; set; }
         public static string UserGender { get; set; }
         public static string CurrencySymbol { get; set; } = "$";
 
-        // Other features
         public static string LastGeneratedTips { get; set; } = string.Empty;
         public static string GoalName { get; set; } = string.Empty;
         public static DateTime GoalDeadline { get; set; } = DateTime.MinValue;
@@ -27,13 +27,43 @@ namespace ExpensesTracker
         // Calculate remaining income
         public static decimal RemainingIncome => Income - Expenses.Sum(e => e.AmountSpent);
 
-        /// <summary>
-        /// Load expenses from the database for the logged-in user.
-        /// </summary>
+        // Event to notify other pages of budget updates
+        public static event Action BudgetUpdated;
+
+        public static void UpdateCalculatedBudget()
+        {
+            CalculatedBudget = CalculateTotalBudget();
+
+            // Notify other parts of the app about the budget update
+            NotifyBudgetUpdated();
+        }
+
+        public static decimal CalculateTotalBudget()
+        {
+            decimal pastMonthsIncome = CalculatePastMonthsIncome();
+            decimal remainingIncome = Income - Expenses.Sum(e => e.AmountSpent);
+            return pastMonthsIncome + remainingIncome;
+        }
+
+        private static decimal CalculatePastMonthsIncome()
+        {
+            DateTime today = DateTime.Now;
+            DateTime firstExpenseDate = Expenses
+                .Select(e => DateTime.Parse(e.Date))
+                .OrderBy(d => d)
+                .FirstOrDefault();
+
+            if (firstExpenseDate == default)
+                return 0;
+
+            int monthsPassed = (today.Year - firstExpenseDate.Year) * 12 + today.Month - firstExpenseDate.Month;
+            return Math.Max(0, monthsPassed * Income);
+        }
+
         public static void LoadExpenses()
         {
             Expenses.Clear();
-            var expensesFromDb = DatabaseHelper.GetExpenses(UserID); // Ensure UserID is passed here
+            var expensesFromDb = DatabaseHelper.GetExpenses(UserID);
 
             foreach (var expense in expensesFromDb)
             {
@@ -42,14 +72,8 @@ namespace ExpensesTracker
             Console.WriteLine($"Loaded {Expenses.Count} expenses for UserID: {UserID}");
         }
 
-
-
-        /// <summary>
-        /// Add a new expense and save it to the database.
-        /// </summary>
         public static void AddExpense(string itemName, string itemType, decimal amountSpent, string currency, string date)
         {
-            // Convert currency if it differs from user's income currency
             if (currency != CurrencySymbol)
             {
                 amountSpent = ConvertCurrency(amountSpent, currency, CurrencySymbol);
@@ -71,17 +95,11 @@ namespace ExpensesTracker
                     Date = date,
                     AmountSpentDisplay = $"{CurrencySymbol}{amountSpent:N0}"
                 });
-
-                Console.WriteLine("Expense added successfully.");
             }
         }
 
-        /// <summary>
-        /// Update an existing expense in the database.
-        /// </summary>
         public static void UpdateExpense(int expenseId, string itemName, string itemType, decimal amountSpent, string currency, string date)
         {
-            // Convert currency if it differs from user's income currency
             if (currency != CurrencySymbol)
             {
                 amountSpent = ConvertCurrency(amountSpent, currency, CurrencySymbol);
@@ -99,14 +117,9 @@ namespace ExpensesTracker
                 expenseToUpdate.Currency = currency;
                 expenseToUpdate.Date = date;
                 expenseToUpdate.AmountSpentDisplay = $"{CurrencySymbol}{amountSpent:N0}";
-
-                Console.WriteLine($"Expense with ID {expenseId} updated successfully.");
             }
         }
 
-        /// <summary>
-        /// Delete an expense from the database.
-        /// </summary>
         public static void DeleteExpense(int expenseId)
         {
             DatabaseHelper.DeleteExpense(expenseId);
@@ -115,46 +128,47 @@ namespace ExpensesTracker
             if (expenseToRemove != null)
             {
                 Expenses.Remove(expenseToRemove);
-                Console.WriteLine($"Expense with ID {expenseId} deleted successfully.");
             }
         }
 
-        /// <summary>
-        /// Update the user's income and save it to the database.
-        /// </summary>
         public static void UpdateIncome(decimal newIncome)
         {
             Income = newIncome;
             DatabaseHelper.UpdateIncome(UserID, newIncome);
 
-            Console.WriteLine($"Income updated for UserID: {UserID}");
+            // Notify about budget update
+            NotifyBudgetUpdated();
         }
 
-        /// <summary>
-        /// Convert currency amounts based on predefined exchange rates.
-        /// </summary>
+        // Updated method to handle goal outcomes (Spent/Kept) with persistence
+        public static void ApplyGoalOutcome(string goalName, decimal amount, string outcome)
+        {
+            if (outcome == "Spent")
+            {
+                CalculatedBudget -= amount;
+            }
+            // If "Kept", no change to the budget
+
+            BudgetHelper.SaveBudget(UserID, CalculatedBudget); // Persist the updated budget
+            NotifyBudgetUpdated();
+        }
+
         private static decimal ConvertCurrency(decimal amount, string fromCurrency, string toCurrency)
         {
-            const decimal USD_TO_IDR_RATE = 14000; // Conversion rate: $1 = Rp14,000
+            const decimal USD_TO_IDR_RATE = 14000;
 
             if (fromCurrency == "$" && toCurrency == "Rp")
-            {
                 return amount * USD_TO_IDR_RATE;
-            }
             else if (fromCurrency == "Rp" && toCurrency == "$")
-            {
                 return amount / USD_TO_IDR_RATE;
-            }
 
-            return amount; // No conversion needed if currencies are the same
+            return amount;
         }
 
-        /// <summary>
-        /// Converts an expense's amount to the user's currency for display.
-        /// </summary>
-        private static decimal ConvertCurrencyForDisplay(decimal amount, string fromCurrency)
+        // Notify subscribers when the budget is updated
+        public static void NotifyBudgetUpdated()
         {
-            return ConvertCurrency(amount, fromCurrency, CurrencySymbol);
+            BudgetUpdated?.Invoke();
         }
     }
 
@@ -167,8 +181,6 @@ namespace ExpensesTracker
         public decimal AmountSpent { get; set; }
         public string Currency { get; set; }
         public string Date { get; set; }
-
-        // New property for formatted display of Amount Spent
         public string AmountSpentDisplay { get; set; }
     }
 }
