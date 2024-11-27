@@ -20,6 +20,10 @@ namespace ExpensesTracker
             IncomeTextBox.Text = FormatCurrency(ExpenseDataStore.Income);
             CurrencyComboBox.SelectedIndex = ExpenseDataStore.CurrencySymbol == "$" ? 0 : 1;
             SyncExpenseCurrencyWithIncome();
+<<<<<<< HEAD
+
+=======
+>>>>>>> 45778210c2e9f0c544850818ad87abe921edda3d
         }
 
         private void IncomeTextBox_TextChanged(object sender, TextChangedEventArgs e)

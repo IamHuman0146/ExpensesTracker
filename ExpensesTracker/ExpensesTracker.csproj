@@ -156,6 +156,7 @@
     <Compile Include="AISavingTipsPage.xaml.cs">
       <DependentUpon>AISavingTipsPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="BudgetHelper.cs" />
     <Compile Include="DashboardWindow.xaml.cs">
       <DependentUpon>DashboardWindow.xaml</DependentUpon>
     </Compile>

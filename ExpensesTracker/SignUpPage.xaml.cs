@@ -26,7 +26,19 @@ namespace ExpensesTracker
             }
 
             // Validate age input
-            if (!int.TryParse(ageText, out int age) || age < 18)
+            if (string.IsNullOrWhiteSpace(ageText))
+            {
+                MessageBox.Show("Please enter your age.", "Age Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!int.TryParse(ageText, out int age))
+            {
+                MessageBox.Show("Age must be a valid number.", "Invalid Age", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (age < 18)
             {
                 MessageBox.Show("You must be at least 18 years old to register.", "Age Restriction", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;

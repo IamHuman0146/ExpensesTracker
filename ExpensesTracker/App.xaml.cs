@@ -17,6 +17,7 @@ namespace ExpensesTracker
         {
             base.OnStartup(e);
             DatabaseHelper.InitializeDatabase();
+
         }
     }
 }

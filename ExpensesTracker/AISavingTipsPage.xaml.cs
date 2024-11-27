@@ -35,9 +35,10 @@ namespace ExpensesTracker
 
             try
             {
-                if (ExpenseDataStore.ApiCallCount >= ExpenseDataStore.ApiLimit)
+                // Validate that the required data is not empty
+                if (!IsDataValid())
                 {
-                    ApiUsageNotification.Text = "Daily API limit reached. Please try again tomorrow.";
+                    GeneratedTipsTextBox.Text = "Data is missing or invalid. Please ensure income and expenses are entered before generating tips.";
                     return;
                 }
 
@@ -46,10 +47,12 @@ namespace ExpensesTracker
 
                 if (!string.IsNullOrEmpty(tips))
                 {
-                    ExpenseDataStore.ApiCallCount++;
                     ExpenseDataStore.LastGeneratedTips = tips;
                     GeneratedTipsTextBox.Text = tips;
-                    ApiUsageNotification.Text = $"API calls used today: {ExpenseDataStore.ApiCallCount}/{ExpenseDataStore.ApiLimit}";
+                }
+                else
+                {
+                    GeneratedTipsTextBox.Text = "No tips generated. Please try again.";
                 }
             }
             catch (Exception ex)
@@ -61,6 +64,25 @@ namespace ExpensesTracker
                 if (generateButton != null)
                     generateButton.IsEnabled = true;
             }
+        }
+
+        private bool IsDataValid()
+        {
+            // Ensure income is greater than zero
+            if (ExpenseDataStore.Income <= 0)
+            {
+                MessageBox.Show("Income must be greater than zero to generate saving tips.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            // Ensure there are expenses in the data store
+            if (!ExpenseDataStore.Expenses.Any())
+            {
+                MessageBox.Show("No expenses found. Please enter some expenses before generating saving tips.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            return true;
         }
 
         private async Task<string> GenerateTipsWithRetry()
@@ -92,7 +114,7 @@ namespace ExpensesTracker
 
             // Calculate total expenses and spending ratio
             decimal totalExpenses = ExpenseDataStore.Expenses.Sum(e => e.AmountSpent);
-            decimal spendingRatio = (totalExpenses / ExpenseDataStore.Income) * 100;
+            decimal spendingRatio = (ExpenseDataStore.Income > 0) ? (totalExpenses / ExpenseDataStore.Income) * 100 : 0;
 
             // Expense breakdown sorted by amount spent
             var expenseBreakdown = ExpenseDataStore.Expenses
@@ -100,7 +122,7 @@ namespace ExpensesTracker
                 .Select(e => $"{e.ItemName}: {currency} {e.AmountSpent:N0}");
 
             // Build the prompt text
-            sb.AppendLine("Provide a financial summary under 120 words based on this information:");
+            sb.AppendLine("Provide a short financial summary under 100 words based on this information give 3 solution:");
             sb.AppendLine($"\nIncome: {formattedIncome}");
             sb.AppendLine($"Total Expenses: {currency} {totalExpenses:N0} ({spendingRatio:F1}% of income)");
             sb.AppendLine("Expense Breakdown:");
@@ -159,7 +181,6 @@ namespace ExpensesTracker
             }
 
             GeneratedTipsTextBox.Text = errorMessage;
-            ApiUsageNotification.Text = errorMessage;
         }
     }
 }

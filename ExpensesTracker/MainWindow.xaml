@@ -153,18 +153,9 @@
                                  Grid.Row="2" Grid.Column="1" />
                 </Grid>
 
-                <!-- Remember Me and Forgot Password -->
-                <Grid Width="500" HorizontalAlignment="Center" Margin="0,0,0,20">
-                    <CheckBox Content="Remember me" VerticalAlignment="Top" 
-                              HorizontalAlignment="Left" Margin="102,8,0,0"/>
-                    <TextBlock Text="Forgot Password?" Foreground="#2563EB" 
-                               Cursor="Hand" HorizontalAlignment="Right" 
-                               VerticalAlignment="Center"/>
-                </Grid>
-
                 <!-- Buttons -->
                 <Button Content="Sign In" Style="{StaticResource ModernButton}"
-                        Width="350" Margin="0,0,0,15" HorizontalAlignment="Center" Click="LogIn_Click"/>
+                        Width="350" Margin="0,30,0,15" HorizontalAlignment="Center" Click="LogIn_Click"/>
 
                 <Button Content="Sign in with Google" Style="{StaticResource ModernButton}"
                         Width="350" Background="White" Foreground="#1E1E1E"
@@ -197,7 +188,7 @@
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0">
                     <!-- Logo Image -->
                     <Image Source="pack://application:,,,/ExpensesTracker;component/Images/logo.png"
-                           Height="155" Width="302" RenderTransformOrigin="0.5,0.5" Margin="0,0,0,20"/>
+                           Height="155" Width="302" RenderTransformOrigin="0.5,0.5" Margin="0,50,0,10"/>
 
                     <!-- Texts under the logo -->
                     <TextBlock Text="AI-Powered" FontSize="42" FontWeight="Bold" 

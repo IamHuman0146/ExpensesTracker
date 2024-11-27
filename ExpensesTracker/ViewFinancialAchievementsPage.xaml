@@ -1,30 +1,80 @@
 ﻿<Page x:Class="ExpensesTracker.ViewFinancialAchievementsPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      Title="View Financial Achievements">
+      Title="View Financial Achievements" Height="500" Width="800">
+    <Grid Margin="24" x:Name="MainGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-    <Grid Background="#F5F5F5" Margin="40">
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20,0,0">
-            <!-- Goals In Progress Table -->
-            <TextBlock Text="Goals In Progress:" FontSize="20" FontWeight="Bold" Foreground="#4F46E5" Margin="0,20,0,10"/>
-            <DataGrid x:Name="InProgressDataGrid" AutoGenerateColumns="False" Width="600" Margin="0,10,0,20" IsReadOnly="True" CanUserAddRows="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Goal Name" Binding="{Binding Name}" Width="200"/>
-                    <DataGridTextColumn Header="Target Amount" Binding="{Binding FormattedTargetAmount}" Width="150"/>
-                    <DataGridTextColumn Header="Deadline" Binding="{Binding Deadline, StringFormat=MM/dd/yyyy}" Width="150"/>
-                    <DataGridTextColumn Header="Status" Binding="{Binding StatusMessage}" Width="100"/>
-                </DataGrid.Columns>
-            </DataGrid>
+        <!-- Header Section -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20" Orientation="Horizontal">
+            <TextBlock Text="Financial Achievements" FontSize="28" FontWeight="SemiBold" Margin="0,0,16,0"/>
+            <Button Content="?" Width="30" Height="30" Click="ShowHelp_Click" HorizontalAlignment="Right"/>
+        </StackPanel>
 
-            <!-- Progress Display -->
-            <TextBlock x:Name="GoalStatusTextBlock" FontSize="16" Foreground="#1F2937" TextAlignment="Center" Margin="0,10,0,10"/>
-            <ProgressBar x:Name="GoalProgressBar" Height="20" Width="400" Minimum="0" Maximum="100" Value="0" Margin="0,10,0,10"/>
+        <!-- Budget Display Section -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,20" Orientation="Horizontal">
+            <TextBlock Text="Current Budget:" FontSize="16" FontWeight="Bold" Margin="0,0,10,0"/>
+            <TextBlock x:Name="BudgetLabel" FontSize="16" FontWeight="Bold" Foreground="Green"/>
+        </StackPanel>
 
-            <!-- History Section -->
-            <TextBlock Text="History:" FontSize="20" FontWeight="Bold" Foreground="#4F46E5" Margin="0,20,0,10"/>
-            <StackPanel x:Name="HistoryPanel" Orientation="Vertical" Width="600">
-                <!-- Achieved or Missed Goals will be dynamically added here -->
-            </StackPanel>
+        <!-- DataGrid to display in-progress goals -->
+        <DataGrid Grid.Row="2" x:Name="GoalsDataGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                  SelectionMode="Single">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsPrimary}" Value="True">
+                            <Setter Property="Background" Value="LightGreen"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Goal Name" Binding="{Binding Name}" Width="2*"/>
+                <DataGridTextColumn Header="Amount Set" Binding="{Binding AmountSet}" Width="2*"/>
+                <DataGridTextColumn Header="Start Date" Binding="{Binding StartDate}" Width="2*"/>
+                <DataGridTextColumn Header="Progress (%)" Binding="{Binding ProgressText}" Width="1*"/>
+                <DataGridTemplateColumn Header="Progress Bar" Width="2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ProgressBar Value="{Binding Progress}" Maximum="100" Height="20"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Completed Goals Section -->
+        <TextBlock Grid.Row="3" Text="Completed Goals" FontSize="18" FontWeight="Bold" Margin="0,16,0,10"/>
+        <DataGrid Grid.Row="4" x:Name="AchievedGoalsDataGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                  SelectionMode="Single" Margin="0,10,0,0" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Goal Name" Binding="{Binding Name}" Width="2*"/>
+                <DataGridTextColumn Header="Amount" Binding="{Binding AmountSet}" Width="2*"/>
+                <DataGridTextColumn Header="Date" Binding="{Binding StartDate}" Width="2*"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="2*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button x:Name="SetPrimaryGoalButton" Content="Set Primary Goal" Width="150" Height="36" Margin="8,0"
+                    Background="#4CAF50" Foreground="White" Click="SetPrimaryGoal_Click"/>
+            <Button x:Name="ChangeStatusButton" Content="Change Status" Width="150" Height="36" Margin="8,0"
+                    Background="#2196F3" Foreground="White" Click="ChangeGoalStatus_Click"/>
+            <Button x:Name="DeleteButton" Content="Delete Goal" Width="150" Height="36" Margin="8,0"
+                    Background="#E53E3E" Foreground="White" Click="DeleteCompletedGoal_Click"/>
+            <Button x:Name="RefreshBudgetButton" Content="Refresh Budget" Width="150" Height="36" Margin="8,0"
+        Background="#4CAF50" Foreground="White" Click="RefreshBudget_Click"/>
+
         </StackPanel>
     </Grid>
 </Page>
