@@ -32,9 +32,12 @@ namespace ExpensesTracker
                 ExpenseDataStore.UserAge = age;
                 ExpenseDataStore.UserGender = gender;
                 ExpenseDataStore.Income = income;
+<<<<<<< HEAD
 
                 // Initialize ExpenseDataStore with user-specific data
                 ExpenseDataStore.InitializeDataStore(userId);
+=======
+>>>>>>> 45778210c2e9f0c544850818ad87abe921edda3d
 
                 MessageBox.Show("Login successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -57,8 +60,11 @@ namespace ExpensesTracker
         }
 
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 45778210c2e9f0c544850818ad87abe921edda3d
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             this.WindowState = WindowState.Minimized;
