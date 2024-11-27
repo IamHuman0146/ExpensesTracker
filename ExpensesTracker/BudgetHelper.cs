@@ -25,7 +25,7 @@ namespace ExpensesTracker
                 Console.WriteLine($"Error saving budget: {ex.Message}");
             }
         }
-
+        
         public static decimal LoadBudget(int userId)
         {
             try

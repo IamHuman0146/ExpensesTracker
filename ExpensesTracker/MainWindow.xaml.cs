@@ -33,6 +33,9 @@ namespace ExpensesTracker
                 ExpenseDataStore.UserGender = gender;
                 ExpenseDataStore.Income = income;
 
+                // Initialize ExpenseDataStore with user-specific data
+                ExpenseDataStore.InitializeDataStore(userId);
+
                 MessageBox.Show("Login successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // Navigate to the MainPage
@@ -52,6 +55,8 @@ namespace ExpensesTracker
                 MessageBox.Show("Invalid email or password.", "Login Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+
 
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -87,5 +92,6 @@ namespace ExpensesTracker
                 DragMove();
             }
         }
+
     }
 }

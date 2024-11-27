@@ -30,7 +30,6 @@
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
-                        <!-- Highlight primary goal -->
                         <DataTrigger Binding="{Binding IsPrimary}" Value="True">
                             <Setter Property="Background" Value="LightGreen"/>
                             <Setter Property="FontWeight" Value="Bold"/>
@@ -56,7 +55,7 @@
         <!-- Completed Goals Section -->
         <TextBlock Grid.Row="3" Text="Completed Goals" FontSize="18" FontWeight="Bold" Margin="0,16,0,10"/>
         <DataGrid Grid.Row="4" x:Name="AchievedGoalsDataGrid" AutoGenerateColumns="False" CanUserAddRows="False"
-                  SelectionMode="Single" Margin="0,10,0,0" IsReadOnly="True" MouseDoubleClick="AchievedGoalsDataGrid_MouseDoubleClick">
+                  SelectionMode="Single" Margin="0,10,0,0" IsReadOnly="True">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Goal Name" Binding="{Binding Name}" Width="2*"/>
                 <DataGridTextColumn Header="Amount" Binding="{Binding AmountSet}" Width="2*"/>
@@ -69,8 +68,13 @@
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button x:Name="SetPrimaryGoalButton" Content="Set Primary Goal" Width="150" Height="36" Margin="8,0"
                     Background="#4CAF50" Foreground="White" Click="SetPrimaryGoal_Click"/>
-            <Button x:Name="DeleteButton" Content="Delete Goal" Width="100" Height="36" Margin="8,0"
-                    Background="#E53E3E" Foreground="White" Click="DeleteGoal_Click"/>
+            <Button x:Name="ChangeStatusButton" Content="Change Status" Width="150" Height="36" Margin="8,0"
+                    Background="#2196F3" Foreground="White" Click="ChangeGoalStatus_Click"/>
+            <Button x:Name="DeleteButton" Content="Delete Goal" Width="150" Height="36" Margin="8,0"
+                    Background="#E53E3E" Foreground="White" Click="DeleteCompletedGoal_Click"/>
+            <Button x:Name="RefreshBudgetButton" Content="Refresh Budget" Width="150" Height="36" Margin="8,0"
+        Background="#4CAF50" Foreground="White" Click="RefreshBudget_Click"/>
+
         </StackPanel>
     </Grid>
 </Page>

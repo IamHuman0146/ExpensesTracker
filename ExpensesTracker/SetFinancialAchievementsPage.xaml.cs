@@ -66,18 +66,11 @@ namespace ExpensesTracker
                 return;
             }
 
-            DateTime? startDate = StartDatePicker.SelectedDate;
-            if (startDate == null)
-            {
-                MessageBox.Show("Please select a start date.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
             var goal = new Goal
             {
                 Name = goalName,
                 Amount = goalAmount,
-                StartDate = startDate.Value,
+                StartDate = DateTime.Now,
                 Currency = ExpenseDataStore.CurrencySymbol
             };
 
@@ -93,7 +86,6 @@ namespace ExpensesTracker
 
             GoalNameTextBox.Clear();
             GoalAmountTextBox.Clear();
-            StartDatePicker.SelectedDate = null;
 
             // Notify other pages to update progress
             ExpenseDataStore.NotifyBudgetUpdated();

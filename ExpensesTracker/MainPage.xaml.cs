@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Navigation;
@@ -10,6 +11,9 @@ namespace ExpensesTracker
         public MainPage()
         {
             InitializeComponent();
+            ExpenseDataStore.LoadExpenses();
+            ExpenseDataStore.UpdateCalculatedBudget();
+            this.Closed += OnMainWindowClosed;
         }
 
         // Helper method to reset the background of all buttons
@@ -54,8 +58,13 @@ namespace ExpensesTracker
         {
             ResetButtonStyles();
             ViewAchievementsButton.Background = new SolidColorBrush(Color.FromRgb(74, 144, 226));
+
+            // Ensure the budget is recalculated before navigating
+            ExpenseDataStore.UpdateCalculatedBudget();
+
             MainContentFrame.Navigate(new ViewFinancialAchievementsPage());
         }
+
 
         private void ProfileButton_Click(object sender, RoutedEventArgs e)
         {
@@ -70,6 +79,18 @@ namespace ExpensesTracker
                 this.Close();
             }
         }
+        private void OnMainWindowClosed(object sender, EventArgs e)
+        {
+            // Reset the budget to its initial state
+            ExpenseDataStore.CalculatedBudget = ExpenseDataStore.InitialBudget;
+
+            // Trigger any recalculations or updates if necessary
+            ExpenseDataStore.UpdateCalculatedBudget();
+
+            // Optionally log or debug to confirm the method is called
+            Console.WriteLine("Main window closed: Budget reset.");
+        }
+
 
     }
 }
